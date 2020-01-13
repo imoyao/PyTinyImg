@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Created by Administrator at 2020/1/12 10:12
+# Created by Administrator at 2020/1/13 20:56
 import os
+
 from tinify import tinify
-import click
+import fire
 
 
 class NotDirError(Exception):
@@ -17,7 +18,7 @@ class ShrinkImages:
 2. 如果给出参数并且是文件，则压缩单个文件
     1. 如果没有额外参数，则压缩该文件并保存到tiny目录；
     2. 如果给出的额外参数是 -d xxx，则保存到用户指定的目录（目录可以是相对，也可以是绝对路径）；
-    3. 如果给出的参数是 -f  xxx，如果为空，则压缩成同名+'_tinified'；如果不为空且有后缀，则验证后缀相同再压缩，否则raise；覆盖压缩： -c flag:cover source file.
+    3. 如果给出的参数是 -f  xxx，如果为空，则压缩成同名+'_tinified'；如果不为空且有后缀，则验证后缀相同再压缩，否则raise；如果没有后缀，则判断是否同名，不同名则压缩之后命名新名称文件，否则覆盖提示；
 3. 如果给出参数[源目录 目的目录]，则将文件保存到指定目录；
     """
 
@@ -27,14 +28,6 @@ class ShrinkImages:
         self.back_up_folder = back_up_folder or 'tiny'
         self.support_img_type = ['.jpg', '.png', 'jpeg']
         tinify.key = self.api_key
-
-    def check_key(self):
-        if not self.api_key:
-            os.environ.get('TINY_KEY')
-        else:
-            # 压缩之后才能获取到
-            compression_counts = tinify.compression_count
-        print(compression_counts)
 
     def file_ext(self, fp):
         """
@@ -48,20 +41,6 @@ class ShrinkImages:
     def core_from_tinify(self, src_file_fp, dst_file_fp):
         print(src_file_fp, '-----------core_from_tinify------------', dst_file_fp)
         ret = tinify.from_file(src_file_fp).to_file(dst_file_fp)
-        return ret
-
-    def resize(self, options, width, height, src_file_fp, dst_file_fp):
-        """
-        调整大小也算是一种压缩
-        """
-        assert options in ['scale', 'fit', 'cover', 'thumb']
-        source = tinify.from_file(src_file_fp)
-        resized = source.resize(
-            method=options,
-            width=width,
-            height=height
-        )
-        ret = resized.to_file(dst_file_fp)
         return ret
 
     def compress_single_file(self, src_file_fp='', dst_file_fp=''):
@@ -117,50 +96,5 @@ class ShrinkImages:
         return filelist
 
 
-tiny_img = ShrinkImages(api_key='GT5qbfVhYvp9X5gfXBPdsvG8hRtmKCMz')
-
-
-@click.command()
-@click.option('-f', "--file", type=str, default=None, help="单个文件压缩")
-@click.option('-d', "--dir", type=str, default=None, help="被压缩的文件夹")
-# @click.option('-d', "--dir", 'dir name', flag_value=None,
-#               default=True, help="如果没有文件，则是被压缩的文件夹/如果有文件，则是被压缩的文件保存的目录")
-# @click.option('-w', "--width", type=int, default=-1, help="图片宽度，默认不变")
-@click.option('-c', "--fcover", type=str, default='', help="覆盖压缩，即直接压缩并保存到当前目录")
-@click.option('-r', "--recurse/--not-recurse", default=True, help="递归压缩整个给定的目录")
-@click.option('-s', "--scale", type=int, default=-1, help="以scale方式调整图片大小")
-@click.option("--fit", type=(int, int), default=-1, help="以fit方式调整图片大小")
-@click.option("--cover", type=(int, int), help="以cover方式调整图片大小")
-@click.option("--thumb", type=(int, int), help="以thumb方式调整图片大小")
-@click.option('-k', '--key', prompt=True, default=lambda: os.environ.get('TINY_KEY', ''), help="官网申请的key")
-def run(file, dir, thumb, fcover, fit, cover='', key='', recurse=False, scale=-1):
-    ret = None
-    if key is not '':
-        """
-        在执行前直接配置：程序自动获取（环境变量、文件、代码中），没有则提示配置
-        如果设置key>>>保存到文件中，下一次执行，直接读取;
-        如果不设置，在环境变量和文件中去读取，读取到，则判断key是否可用，可以继续执行
-        """
-        print(key)
-    if any([scale, fit, cover, thumb]):
-        if scale:
-            assert len()
-
-    if file is not None:
-        if dir is None:
-            print('改名保存到当前目录')
-        else:
-            print('保存到指定目录')
-    elif cover is not None:
-        print('压缩文件，直接覆盖压缩！')
-        # ret = tiny_img.compress_single_file(file)  # 仅压缩一个文件
-    else:
-        print('压缩目录!')
-        # ret = tiny_img.compress_dir(dir)  # 压缩指定目录下的文件
-
-    return ret
-
-
 if __name__ == '__main__':
-    ret = run()
-    print(ret)
+    fire.Fire(ShrinkImages)
