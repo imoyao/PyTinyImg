@@ -5,8 +5,19 @@ import os
 from tinify import tinify
 import click
 
+TINY_KEY = ''
+TINY_KEY_FILE = 'tiny.key'
+
 
 class NotDirError(Exception):
+    pass
+
+
+class NotFileError(Exception):
+    pass
+
+
+class NoKeyError(Exception):
     pass
 
 
@@ -28,13 +39,13 @@ class ShrinkImages:
         self.support_img_type = ['.jpg', '.png', 'jpeg']
         tinify.key = self.api_key
 
-    def check_key(self):
-        if not self.api_key:
-            os.environ.get('TINY_KEY')
-        else:
-            # 压缩之后才能获取到
-            compression_counts = tinify.compression_count
-        print(compression_counts)
+    # def check_key(self):
+    #     if not self.api_key:
+    #         os.environ.get('TINY_KEY')
+    #     else:
+    #         # 压缩之后才能获取到
+    #         compression_counts = tinify.compression_count
+    #     print(compression_counts)
 
     def file_ext(self, fp):
         """
@@ -117,50 +128,114 @@ class ShrinkImages:
         return filelist
 
 
+
+    @click.command()
+    @click.option('-f', "--file", type=str, default=None, help="单个文件压缩")
+    @click.option('-d', "--dir", type=str, default=None, help="被压缩的文件夹")
+    @click.option('-s', "--save", type=str, default=None, help="选择文件夹时，指定保存的目录")
+    # @click.option('-d', "--dir", 'dir_name', flag_value=None, default=True, help="如果没有文件，则是被压缩的文件夹/如果有文件，则是被压缩的文件保存的目录")
+    @click.option('-w', "--width", type=int, default=-1, help="图片宽度，默认不变")
+    @click.option('-c', "--fcover", type=str, default='', help="覆盖压缩，即直接压缩并保存到当前目录")
+    @click.option('-r', "--recurse/--not-recurse", default=True, help="递归压缩整个给定的目录")
+    @click.option("--scale", type=int, help="以scale方式调整图片大小")
+    @click.option("--width", type=int, help="以 scale 方式（仅该方式需要此参数）调整图片时指定宽度")
+    @click.option("--height", type=int, help="以 scale 方式（仅该方式需要此参数）调整图片时指定高度")
+    @click.option("--fit", nargs=2, type=int, help="以fit方式调整图片大小")
+    @click.option("--cover", nargs=2, type=int, help="以cover方式调整图片大小")
+    @click.option("--thumb", nargs=2, type=int, help="以thumb方式调整图片大小")
+    # @click.option('-k', '--key', auto_envvar_prefix="TINY_KEY", prompt=True, default=lambda: os.environ.get('TINY_KEY', ''), help="官网申请的key")
+    @click.option('-k', '--key', prompt=check_key(), envvar='TINY_KEY', help="官网申请的key")
+    def run(file, dir, save, fcover, fit, thumb, cover, scale, width, height, key=None, recurse=False):
+        # print(fit)
+        print(f'I get {(file, dir, save, fcover, fit, thumb, cover, scale, width, height, key, recurse)}')
+        ret = None
+        if key is None:
+            raise NoKeyError("I can't make bricks without straw.Give me TINY_KEY Please?")
+        if key is not '':
+            with open(TINY_KEY_FILE, 'w') as f:
+                f.write(key)
+            os.environ['TINY_KEY'] = key  # TODO:设置之后无用，应该写文件
+            """
+            在执行前直接配置：程序自动获取（环境变量、文件、代码中），没有则提示配置
+            如果设置key>>>保存到文件中，下一次执行，直接读取;
+            如果不设置，在环境变量和文件中去读取，读取到，则判断key是否可用，可以继续执行
+            """
+            print(os.environ.get('TINY_KEY'))
+
+        if any([scale, fit, cover, thumb]):
+            if scale:
+                assert (width or height) and not all([width, height])
+                if width:
+                    print(f'width for scale is {width}.')
+                else:
+                    print(f'height for scale is {height}.')
+            else:
+                print(f'args is {fit, cover, thumb}')
+                return
+
+        if file is not None:  # 压缩文件
+            if dir is None:
+                if fcover:
+                    print('覆盖压缩到当前目录')
+
+                else:
+                    print('改名保存到当前目录')
+            else:
+                print('保存到指定目录')
+        if any([scale, fit, cover, thumb]):
+            print('resize file')
+            if os.path.isfile(file):
+                print(f'resieze file: {file}')
+            else:
+                raise NotFileError(f'The args you give file {file} is not a file.')
+            print('压缩文件，直接覆盖压缩！')
+            # ret = tiny_img.compress_single_file(file)  # 仅压缩一个文件
+        else:
+            print('压缩目录!')
+            if save is not None:
+                print(f'the file will save in folder {save}.')
+            else:
+                print(f'the file will save in default folder.')
+
+            # ret = tiny_img.compress_dir(dir)  # 压缩指定目录下的文件
+
+        return ret
+
+def check_key():
+    tiny_key = TINY_KEY
+    if not tiny_key:
+        tiny_key = os.environ.get('TINY_KEY')
+        print(tiny_key, '------------tiny_key')
+        if tiny_key is None:
+            if os.path.exists(TINY_KEY_FILE):
+                with open(TINY_KEY_FILE, 'r') as f:
+                    tiny_key = f.read()
+    ret = True if tiny_key is None else False
+    print(ret, '-------------------')
+    return ret
+
 tiny_img = ShrinkImages(api_key='GT5qbfVhYvp9X5gfXBPdsvG8hRtmKCMz')
 
 
-@click.command()
-@click.option('-f', "--file", type=str, default=None, help="单个文件压缩")
-@click.option('-d', "--dir", type=str, default=None, help="被压缩的文件夹")
-# @click.option('-d', "--dir", 'dir name', flag_value=None,
-#               default=True, help="如果没有文件，则是被压缩的文件夹/如果有文件，则是被压缩的文件保存的目录")
-# @click.option('-w', "--width", type=int, default=-1, help="图片宽度，默认不变")
-@click.option('-c', "--fcover", type=str, default='', help="覆盖压缩，即直接压缩并保存到当前目录")
-@click.option('-r', "--recurse/--not-recurse", default=True, help="递归压缩整个给定的目录")
-@click.option('-s', "--scale", type=int, default=-1, help="以scale方式调整图片大小")
-@click.option("--fit", type=(int, int), default=-1, help="以fit方式调整图片大小")
-@click.option("--cover", type=(int, int), help="以cover方式调整图片大小")
-@click.option("--thumb", type=(int, int), help="以thumb方式调整图片大小")
-@click.option('-k', '--key', prompt=True, default=lambda: os.environ.get('TINY_KEY', ''), help="官网申请的key")
-def run(file, dir, thumb, fcover, fit, cover='', key='', recurse=False, scale=-1):
-    ret = None
-    if key is not '':
-        """
-        在执行前直接配置：程序自动获取（环境变量、文件、代码中），没有则提示配置
-        如果设置key>>>保存到文件中，下一次执行，直接读取;
-        如果不设置，在环境变量和文件中去读取，读取到，则判断key是否可用，可以继续执行
-        """
-        print(key)
-    if any([scale, fit, cover, thumb]):
-        if scale:
-            assert len()
+# @click.command()
+# @click.option('--pos', nargs=2, type=float)
+# def run(pos):
+#     click.echo('%s / %s' % pos)
 
-    if file is not None:
-        if dir is None:
-            print('改名保存到当前目录')
-        else:
-            print('保存到指定目录')
-    elif cover is not None:
-        print('压缩文件，直接覆盖压缩！')
-        # ret = tiny_img.compress_single_file(file)  # 仅压缩一个文件
-    else:
-        print('压缩目录!')
-        # ret = tiny_img.compress_dir(dir)  # 压缩指定目录下的文件
+def conditional_decorator(dec, condition):
+    def decorator(func):
+        if not condition:
+            # Return the function unchanged, not decorated.
+            return func
+        return dec(func)
 
-    return ret
+    return decorator
+
+
+
 
 
 if __name__ == '__main__':
-    ret = run()
+    # 来自环境变量的值 https://www.osgeo.cn/click/options.html#values-from-environment-variables
+    ret = tiny_img.run(auto_envvar_prefix='TINY')
     print(ret)
