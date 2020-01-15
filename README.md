@@ -1,5 +1,10 @@
-## Not READY!
-The code is NOT ready for use,Please wait a moment.
+## PyTinyImg
+
+> Python Tiny Images --> PyTinyImg  
+> tool name: 压（ya）缩（suo）图（tu）--> yst  
+> This is a tool for shrink images with the API of [TinyPNG](https://tinypng.com/)
+
+## **Need more test**
 ----
 # <img src="http://ww1.sinaimg.cn/large/005Xtdi2jw1f4v3ht2r2ij3074074jrl.jpg" width=32 /> TinyPng
 [![License](https://img.shields.io/badge/license-Apache%202-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
