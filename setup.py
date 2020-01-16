@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Created by Administrator at 2020/1/15 23:24
 from setuptools import setup, find_packages
-import settings
+from scripts import settings
 setup(
     name=settings.NAME,
     version=settings.VERSION,

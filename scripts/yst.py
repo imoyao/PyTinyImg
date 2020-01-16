@@ -75,6 +75,8 @@ def cli(file, dir, save, overwrite, fit, thumb, cover, scale, width, height, rec
     if key is not '':
         with open(settings.TINY_KEY_FILE, 'w') as f:  # TODO: configuration
             f.write(key)
+            click.Abort('Set key ok.')
+
     # ======== handle key finished ============
     tiny_img = ShrinkImages(api_key=key)
 
